@@ -13,6 +13,8 @@ struct simd_input<Architecture::HASWELL> {
   __m256i lo;
   __m256i hi;
 
+  static const size_t SIZE = 64;
+
   really_inline simd_input(const uint8_t *ptr) {
     this->lo = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(ptr + 0));
     this->hi = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(ptr + 32));
@@ -74,6 +76,14 @@ struct simd_input<Architecture::HASWELL> {
 }; // struct simd_input
 
 } // namespace simdjson
+UNTARGET_REGION
+
+TARGET_HASWELL
+namespace simdjson::haswell {
+
+static const size_t CHUNK_SIZE = simd_input<Architecture::HASWELL>::SIZE;
+
+}
 UNTARGET_REGION
 
 #endif // IS_X86_64

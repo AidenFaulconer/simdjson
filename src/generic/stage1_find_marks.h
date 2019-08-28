@@ -115,8 +115,8 @@ really_inline uint64_t finalize_structurals(
   return structurals;
 }
 
-// Find structural bits in a 64-byte chunk.
-really_inline void find_structural_bits_64(
+// Find structural bits in an input chunk.
+really_inline void find_structural_bits(
     const uint8_t *buf, size_t idx, uint32_t *base_ptr, uint32_t &base,
     uint64_t &prev_iter_ends_odd_backslash, uint64_t &prev_iter_inside_quote,
     uint64_t &prev_iter_ends_pseudo_pred, uint64_t &structurals,
@@ -159,8 +159,8 @@ int find_structural_bits(const uint8_t *buf, size_t len, simdjson::ParsedJson &p
   uint32_t base = 0;
   utf8_checker<ARCHITECTURE> utf8_state;
 
-  /* we have padded the input out to 64 byte multiple with the remainder
-   * being zeros persistent state across loop does the last iteration end
+  /* we have padded the input out to CHUNK_SIZE (e.g. 64) multiple with the
+   * remainder being zeros persistent state across loop does the last iteration end
    * with an odd-length sequence of backslashes? */
 
   /* either 0 or 1, but a 64-bit value */
@@ -184,29 +184,28 @@ int find_structural_bits(const uint8_t *buf, size_t len, simdjson::ParsedJson &p
    * expensive carryless multiply in the previous step with this work */
   uint64_t structurals = 0;
 
-  size_t lenminus64 = len < 64 ? 0 : len - 64;
+  size_t last_chunk_idx = len < CHUNK_SIZE ? 0 : len - CHUNK_SIZE;
   size_t idx = 0;
   uint64_t error_mask = 0; /* for unescaped characters within strings (ASCII
                               code points < 0x20) */
 
-  for (; idx < lenminus64; idx += 64) {
-    find_structural_bits_64(&buf[idx], idx, base_ptr, base,
-                            prev_iter_ends_odd_backslash,
-                            prev_iter_inside_quote, prev_iter_ends_pseudo_pred,
-                            structurals, error_mask, utf8_state);
+  for (; idx < last_chunk_idx; idx += CHUNK_SIZE) {
+    find_structural_bits(&buf[idx], idx, base_ptr, base,
+                         prev_iter_ends_odd_backslash,
+                         prev_iter_inside_quote, prev_iter_ends_pseudo_pred,
+                         structurals, error_mask, utf8_state);
   }
-  /* If we have a final chunk of less than 64 bytes, pad it to 64 with
-   * spaces  before processing it (otherwise, we risk invalidating the UTF-8
-   * checks). */
+  /* If we have a final chunk of less than CHUNK_SIZE bytes, pad it with spaces
+   * before processing it (otherwise, we risk invalidating the UTF-8 checks). */
   if (idx < len) {
-    uint8_t tmp_buf[64];
-    memset(tmp_buf, 0x20, 64);
+    uint8_t tmp_buf[CHUNK_SIZE];
+    memset(tmp_buf, 0x20, CHUNK_SIZE);
     memcpy(tmp_buf, buf + idx, len - idx);
-    find_structural_bits_64(&tmp_buf[0], idx, base_ptr, base,
-                            prev_iter_ends_odd_backslash,
-                            prev_iter_inside_quote, prev_iter_ends_pseudo_pred,
-                            structurals, error_mask, utf8_state);
-    idx += 64;
+    find_structural_bits(&tmp_buf[0], idx, base_ptr, base,
+                         prev_iter_ends_odd_backslash,
+                         prev_iter_inside_quote, prev_iter_ends_pseudo_pred,
+                         structurals, error_mask, utf8_state);
+    idx += CHUNK_SIZE;
   }
 
   /* is last string quote closed? */

@@ -45,6 +45,8 @@ struct simd_input<Architecture::ARM64> {
   uint8x16_t i2;
   uint8x16_t i3;
 
+  static const size_t SIZE = 64;
+
   really_inline simd_input(const uint8_t *ptr) {
     this->i0 = vld1q_u8(ptr + 0);
     this->i1 = vld1q_u8(ptr + 16);
@@ -116,6 +118,12 @@ struct simd_input<Architecture::ARM64> {
 }; // struct simd_input
 
 } // namespace simdjson
+
+namespace simdjson::haswell {
+
+static const size_t CHUNK_SIZE = simd_input<Architecture::ARM64>::SIZE;
+
+}
 
 #endif // IS_ARM64
 #endif // SIMDJSON_ARM64_SIMD_INPUT_H

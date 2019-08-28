@@ -9,6 +9,9 @@ namespace simdjson {
 
 template <Architecture T>
 struct simd_input {
+    // Size of chunk
+    static const size_t SIZE;
+    // Reads SIZE bytes from the buffer into SIMD registers.
     simd_input(const uint8_t *ptr);
     // Run an operation on each chunk.
     template <typename F>

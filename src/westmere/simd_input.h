@@ -15,6 +15,8 @@ struct simd_input<Architecture::WESTMERE> {
   __m128i v2;
   __m128i v3;
 
+  static const size_t SIZE = 64;
+
   really_inline simd_input(const uint8_t *ptr) {
     this->v0 = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ptr + 0));
     this->v1 = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ptr + 16));
@@ -91,6 +93,14 @@ struct simd_input<Architecture::WESTMERE> {
 }; // struct simd_input
 
 } // namespace simdjson
+UNTARGET_REGION
+
+TARGET_WESTMERE
+namespace simdjson::westmere {
+
+static const size_t CHUNK_SIZE = simd_input<Architecture::WESTMERE>::SIZE;
+
+}
 UNTARGET_REGION
 
 #endif // IS_X86_64
